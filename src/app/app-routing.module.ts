@@ -15,6 +15,22 @@ const routes: Routes = [
     redirectTo: 'home',
     pathMatch: 'full'
   },
+  {
+    path: 'build',
+    loadChildren: () => import('./pages/build/build.module').then(m => m.BuildPageModule)
+  },
+  {
+    path: 'form/:formId',
+    loadChildren: () => import('./pages/form/form.module').then(m => m.FormPageModule)
+  },
+  {
+    path: 'view',
+    loadChildren: () => import('./pages/view/view.module').then(m => m.ViewPageModule)
+  },
+  {
+    path: 'reciept',
+    loadChildren: () => import('./pages/reciept/reciept.module').then( m => m.RecieptPageModule)
+  },
 ];
 
 @NgModule({

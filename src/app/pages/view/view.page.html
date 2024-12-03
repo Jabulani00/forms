@@ -1,0 +1,93 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>View responses</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Response List View -->
+  <ng-container *ngIf="!selectedResponse">
+    <ion-list *ngIf="formResponses$ | async as responses">
+      <ion-item-sliding *ngFor="let response of responses">
+        <ion-item (click)="viewResponseDetails(response)">
+          <ion-label>
+            <h2>{{ response.formTitle }}</h2>
+            <p>Submitted: {{ response.submittedAt.toDate() | date:'medium' }}</p>
+            <p>Status: {{ response.status }}</p>
+          </ion-label>
+          <ion-badge color="primary">{{ response.answers.length }} Answers</ion-badge>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option color="danger" (click)="deleteResponse(response)">
+            <ion-icon name="trash"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </ion-list>
+
+    <ion-text *ngIf="!(formResponses$ | async)?.length" class="ion-padding ion-text-center">
+      <p>No form responses found.</p>
+    </ion-text>
+  </ng-container>
+
+  <!-- Response Details View -->
+  <ng-container *ngIf="selectedResponse">
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button (click)="closeResponseDetails()"></ion-back-button>
+        </ion-buttons>
+        <ion-title>{{ selectedResponse.formTitle }} Response</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Response Details</ion-card-title>
+          <ion-card-subtitle>
+            Submitted: {{ selectedResponse.submittedAt.toDate() | date:'medium' }}
+            <ion-badge color="secondary" class="ml-2">{{ selectedResponse.status }}</ion-badge>
+          </ion-card-subtitle>
+        </ion-card-header>
+
+        <ion-card-content>
+          <ion-list>
+            <ng-container *ngFor="let answer of selectedResponse.answers; let i = index">
+              <ion-item-group>
+                <ion-item-divider>
+                  <ion-label>Question {{ i + 1 }}</ion-label>
+                </ion-item-divider>
+                <ion-item>
+                  <ion-label class="ion-text-wrap">
+                    <h2>{{ getQuestionText(answer.questionId) }}</h2>
+                    <p>{{ formatAnswer(answer) }}</p>
+                  </ion-label>
+                  <ion-button 
+                    *ngIf="isFileUpload(answer)" 
+                    fill="clear" 
+                    color="primary" 
+                    (click)="downloadFile(answer.fileInfo)"
+                  >
+                    <ion-icon name="download" slot="start"></ion-icon>
+                    Download
+                  </ion-button>
+                  <ion-button
+  *ngIf="isFileUpload(answer)"
+  fill="clear"
+  color="primary"
+  (click)="viewFile(answer.fileInfo)"
+>
+  <ion-icon name="eye" slot="start"></ion-icon>
+  View File
+</ion-button>
+                </ion-item>
+              </ion-item-group>
+            </ng-container>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  </ng-container>
+</ion-content>

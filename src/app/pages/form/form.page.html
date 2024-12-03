@@ -1,0 +1,107 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ formDetails?.title || 'Form Response' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form *ngIf="formDetails" [formGroup]="responseForm" (ngSubmit)="submitResponse()">
+    <ion-list>
+      <ion-item>
+        <ion-label position="floating">Response ID (optional)</ion-label>
+        <ion-input formControlName="responseId"></ion-input>
+        <ion-button (click)="lookupResponse()">Lookup</ion-button>
+      </ion-item>
+      
+      <ion-list formArrayName="answers">
+        <ion-item *ngFor="let question of formDetails.questions; let i = index">
+          <div [formGroupName]="i">
+            <ion-grid>
+              <ion-row>
+                <ion-col>
+                  <ion-label>{{ question.text }}</ion-label>
+                  
+                  <!-- Text Input -->
+                  <ion-input
+                    *ngIf="question.type === 'text'"
+                    formControlName="answer"
+                    type="text"
+                    [placeholder]="'Enter ' + question.text"
+                  ></ion-input>
+                  
+                  <!-- Long Text Input -->
+                  <ion-textarea
+                    *ngIf="question.type === 'longText'"
+                    formControlName="answer"
+                    [placeholder]="'Enter ' + question.text"
+                  ></ion-textarea>
+                  
+                  <!-- Number Input -->
+                  <ion-input
+                    *ngIf="question.type === 'number'"
+                    formControlName="answer"
+                    type="number"
+                    [placeholder]="'Enter ' + question.text"
+                  ></ion-input>
+                  
+                  <!-- Single Choice -->
+                  <ion-select
+                    *ngIf="isSingleChoice(question)"
+                    formControlName="answer"
+                    [placeholder]="'Select ' + question.text"
+                  >
+                    <ion-select-option
+                      *ngFor="let option of getOptionsForQuestion(question)"
+                      [value]="option.text"
+                    >
+                      {{ option.text }}
+                    </ion-select-option>
+                  </ion-select>
+                  
+                  <!-- File Upload -->
+                  <ion-item *ngIf="isFileUpload(question)">
+                    <ion-label>{{ question.text }}</ion-label>
+                    <input 
+  type="file" 
+  (change)="onFileSelected($event, i)"
+  [accept]="getAcceptedFileTypes(question)"
+>
+                  </ion-item>
+                  
+                  <!-- Multiple Choice -->
+                  <ng-container *ngIf="isMultipleChoice(question)">
+                    <ion-list>
+                      <ion-item *ngFor="let option of getOptionsForQuestion(question); let j = index">
+                        <ion-label>{{ option.text }}</ion-label>
+                        <ion-checkbox
+                          [formControlName]="'answer'"
+                          [value]="option.text"
+                        ></ion-checkbox>
+                      </ion-item>
+                    </ion-list>
+                  </ng-container>
+                  
+                  <!-- True/False -->
+                  <ion-toggle
+                    *ngIf="question.type === 'trueOrFalse'"
+                    formControlName="answer"
+                    [value]="true"
+                  >
+                    {{ question.text }}
+                  </ion-toggle>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </div>
+        </ion-item>
+      </ion-list>
+      
+      <ion-button type="submit" expand="block" color="primary">
+        {{ existingResponseId ? 'Update Response' : 'Submit Response' }}
+      </ion-button>
+    </ion-list>
+  </form>
+</ion-content>

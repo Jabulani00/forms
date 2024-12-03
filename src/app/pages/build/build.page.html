@@ -1,0 +1,92 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Create Form</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form [formGroup]="formBuilder" (ngSubmit)="createForm()">
+    <ion-list>
+      <ion-item>
+        <ion-label position="floating">Form Title</ion-label>
+        <ion-input formControlName="title" required></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Form Description</ion-label>
+        <ion-textarea formControlName="description" required></ion-textarea>
+      </ion-item>
+
+      <ion-list formArrayName="questions">
+        <ion-item *ngFor="let question of questionsForm.controls; let i = index">
+          <div [formGroupName]="i">
+            <ion-grid>
+              <ion-row>
+                <ion-col>
+                  <ion-label>Question Type</ion-label>
+                  <ion-select 
+                    formControlName="type" 
+                    (ionChange)="onQuestionTypeChange(i)"
+                  >
+                    <ion-select-option *ngFor="let type of questionTypes" [value]="type">
+                      {{type}}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-col>
+                <ion-col>
+                  <ion-label>Required</ion-label>
+                  <ion-toggle formControlName="required"></ion-toggle>
+                </ion-col>
+                <ion-col>
+                  <ion-button color="danger" (click)="removeQuestion(i)">Remove</ion-button>
+                </ion-col>
+              </ion-row>
+
+              <ion-row>
+                <ion-col>
+                  <ion-label position="floating">Question Text</ion-label>
+                  <ion-input formControlName="text" required></ion-input>
+                </ion-col>
+              </ion-row>
+
+              <ng-container *ngIf="question.get('type')?.value === 'text' || question.get('type')?.value === 'longText'">
+                <ion-row>
+                  <ion-col>
+                    <ion-label position="floating">Max Length</ion-label>
+                    <ion-input type="number" formControlName="maxLength"></ion-input>
+                  </ion-col>
+                </ion-row>
+              </ng-container>
+
+              <ng-container *ngIf="question.get('type')?.value === 'multipleChoice' || question.get('type')?.value === 'singleChoice'">
+                <ion-list formArrayName="options">
+                  <ion-item *ngFor="let option of getOptionsArray(i).controls; let j = index">
+                    <div [formGroupName]="j">
+                      <ion-label position="floating">Option Text</ion-label>
+                      <ion-input formControlName="text" required></ion-input>
+                      <ion-button color="danger" (click)="removeOption(i, j)">Remove</ion-button>
+                    </div>
+                  </ion-item>
+                </ion-list>
+                <ion-button (click)="addOption(i)">Add Option</ion-button>
+              </ng-container>
+            </ion-grid>
+          </div>
+        </ion-item>
+      </ion-list>
+
+      <ion-button (click)="addQuestion()">Add Question</ion-button>
+      <ion-button type="submit" color="primary">Create Form</ion-button>
+    </ion-list>
+  </form>
+
+  <ion-card *ngIf="generatedLink">
+    <ion-card-header>
+      <ion-card-title>Generated Link</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      {{ generatedLink }}
+      <ion-button (click)="copyLink()">Copy Link</ion-button>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

@@ -68,6 +68,9 @@ export interface Form {
   id: string;
   title: string;
   description: string;
+  isAuthor:boolean;
+  isPaper:boolean;
+  isSpeaker:boolean;
   questions: FormQuestion[];
   createdAt: firebase.firestore.Timestamp;
 }
@@ -105,21 +108,20 @@ export function createForm(form: Omit<Form, 'id' | 'createdAt'>): Form {
 }
 
 export function createFormResponse(
-    formId: string,
-    answers: FormResponseAnswer[],
-    userId?: string | null // Move optional parameter to the end
+    formId: string, 
+    answers: FormResponseAnswer[], 
+    userId?: string | null
   ): FormResponse {
     return {
       id: crypto.randomUUID(),
       formId,
-      // Only include userId if it's a non-empty string
-      ...(userId ? { userId } : {}),
+      ...(userId && userId.trim() !== '' ? { userId } : {}),
       answers,
       submittedAt: Timestamp.now(),
       status: 'submitted'
     };
   }
-
+  
   export function updateFormResponse(
     existingResponse: FormResponse,
     newAnswers: FormResponseAnswer[],
@@ -128,9 +130,8 @@ export function createFormResponse(
     return {
       ...existingResponse,
       answers: newAnswers,
-      ...(userId ? { userId } : {}),
+      ...(userId && userId.trim() !== '' ? { userId } : {}),
       submittedAt: Timestamp.now(),
       status: 'submitted'
     };
   }
-  

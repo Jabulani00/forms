@@ -30,7 +30,11 @@ const routes: Routes = [
   {
     path: 'reciept',
     loadChildren: () => import('./pages/reciept/reciept.module').then( m => m.RecieptPageModule)
+  },  {
+    path: 'papersconf',
+    loadChildren: () => import('./pages/papersconf/papersconf.module').then( m => m.PapersconfPageModule)
   },
+
 ];
 
 @NgModule({

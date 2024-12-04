@@ -2,9 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, FormControl } from '@angular/forms';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController } from '@ionic/angular';
-import { Form, FormQuestion, QuestionType } from 'src/app/shared/models/form.model'; // Adjust import path as needed
+import { Form, FormQuestion, QuestionType, TextQuestion, MultipleChoiceQuestion } from 'src/app/shared/models/form.model';
 import firebase from 'firebase/compat/app';
-
+import { Observable } from 'rxjs';
 @Component({
   selector: 'app-build',
   templateUrl: './build.page.html',
@@ -14,7 +14,7 @@ export class BuildPage implements OnInit {
   formBuilder: FormGroup;
   questionsForm: FormArray;
   generatedLink: string | null = null;
-
+  forms$: Observable<Form[]>;
   questionTypes: QuestionType[] = [
     'text', 
     'longText', 
@@ -24,7 +24,8 @@ export class BuildPage implements OnInit {
     'singleChoice', 
     'fileUpload'
   ];
-
+  isEditMode = false;
+  editingFormId: string | null = null;
   constructor(
     private fb: FormBuilder,
     private firestore: AngularFirestore,
@@ -33,10 +34,124 @@ export class BuildPage implements OnInit {
     this.formBuilder = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3)]],
       description: ['', [Validators.required, Validators.minLength(10)]],
+      isAuthor: [false],
+      isPaper: [false],
+      isSpeaker: [false],
       questions: this.fb.array([])
     });
-
+  
     this.questionsForm = this.formBuilder.get('questions') as FormArray;
+    this.forms$ = this.firestore.collection<Form>('forms', ref => ref.orderBy('createdAt', 'desc'))
+      .valueChanges({ idField: 'docId' });
+  }
+
+
+  fetchForms() {
+    this.forms$ = this.firestore.collection<Form>('forms', ref => ref.orderBy('createdAt', 'desc'))
+      .valueChanges({ idField: 'docId' });
+  }
+
+  async deleteForm(formId: string) {
+    try {
+      const alert = await this.alertController.create({
+        header: 'Confirm Deletion',
+        message: 'Are you sure you want to delete this form?',
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: 'Delete',
+            handler: async () => {
+              // Use delete() method directly
+              await this.firestore.collection('forms').doc(formId).delete();
+              
+              const deleteAlert = await this.alertController.create({
+                header: 'Form Deleted',
+                message: 'The form has been successfully deleted.',
+                buttons: ['OK']
+              });
+              await deleteAlert.present();
+
+              // Optional: Refresh forms list after deletion
+              this.fetchForms();
+            }
+          }
+        ]
+      });
+      await alert.present();
+    } catch (error) {
+      console.error('Error deleting form:', error);
+      const errorAlert = await this.alertController.create({
+        header: 'Error',
+        message: 'Failed to delete the form. Please try again.',
+        buttons: ['OK']
+      });
+      await errorAlert.present();
+    }
+  }
+
+  editForm(form: Form) {
+    this.isEditMode = true;
+    this.editingFormId = form.id;  // Preserve the original form ID
+
+    // Existing edit logic
+    this.formBuilder.patchValue({
+      title: form.title,
+      description: form.description,
+      isAuthor: form.isAuthor,
+      isPaper: form.isPaper,
+      isSpeaker: form.isSpeaker
+    });
+
+    // Clear existing questions
+    while (this.questionsForm.length !== 0) {
+      this.questionsForm.removeAt(0);
+    }
+
+    // Repopulate questions
+    form.questions.forEach(question => {
+      const baseQuestionGroup = {
+        id: question.id,
+        type: question.type,
+        text: question.text,
+        required: question.required
+      };
+
+      let additionalControls: any = {};
+
+      switch (question.type) {
+        case 'text':
+        case 'longText':
+          const textQuestion = question as TextQuestion;
+          additionalControls = {
+            maxLength: textQuestion.maxLength || null
+          };
+          break;
+        case 'multipleChoice':
+        case 'singleChoice':
+          const multiChoiceQuestion = question as MultipleChoiceQuestion;
+          additionalControls = {
+            options: this.fb.array(
+              multiChoiceQuestion.options?.map(opt => 
+                this.fb.group({
+                  id: opt.id,
+                  text: opt.text
+                })
+              ) || []
+            )
+          };
+          break;
+      }
+
+      const questionGroup = this.fb.group({
+        ...baseQuestionGroup,
+        ...additionalControls
+      });
+
+      this.questionsForm.push(questionGroup);
+    });
   }
 
   ngOnInit() {
@@ -104,14 +219,18 @@ export class BuildPage implements OnInit {
     const formData = this.formBuilder.value;
     
     try {
-      // Generate custom ID based on form title
-      const customId = this.generateCustomId(formData.title);
+      // Use the existing ID when in edit mode
+      const customId = this.isEditMode && this.editingFormId 
+        ? this.editingFormId 
+        : this.generateCustomId(formData.title);
 
-      // Prepare form data according to the Form interface
       const formToCreate: Form = {
-        id: customId, // Use the custom generated ID
+        id: customId,
         title: formData.title,
         description: formData.description,
+        isAuthor: formData.isAuthor,
+        isPaper: formData.isPaper,
+        isSpeaker: formData.isSpeaker,
         questions: formData.questions.map((q: any) => ({
           id: q.id,
           type: q.type,
@@ -120,27 +239,44 @@ export class BuildPage implements OnInit {
           ...(q.maxLength && { maxLength: q.maxLength }),
           ...(q.options && { options: q.options })
         })),
-        createdAt: firebase.firestore.Timestamp.now()
+        createdAt: this.isEditMode 
+          ? (this.formBuilder.value.createdAt || firebase.firestore.Timestamp.now())
+          : firebase.firestore.Timestamp.now()
       };
 
-      // Create form in Firestore with the custom ID
-      const formRef = await this.firestore.collection('forms').doc(customId).set(formToCreate);
+      // Update or create the form using the consistent ID
+      await this.firestore.collection('forms').doc(customId).set(formToCreate, { merge: true });
 
-      // Generate and set the link using the custom ID
+      // Generate link using the consistent ID
       this.generatedLink = `http://localhost:8100/form/${customId}`;
 
-      // Show success alert
+      const alertMessage = this.isEditMode 
+        ? 'Your form has been successfully updated!' 
+        : 'Your form has been successfully created!';
+
       const alert = await this.alertController.create({
-        header: 'Form Created',
-        message: 'Your form has been successfully created!',
+        header: this.isEditMode ? 'Form Updated' : 'Form Created',
+        message: alertMessage,
         buttons: ['OK']
       });
       await alert.present();
+
+      // Reset form state
+      this.isEditMode = false;
+      this.editingFormId = null;
+      this.formBuilder.reset();
+      while (this.questionsForm.length !== 0) {
+        this.questionsForm.removeAt(0);
+      }
+      this.addQuestion();
+
+      // Refresh forms list
+      this.fetchForms();
     } catch (error) {
-      console.error('Error creating form:', error);
+      console.error('Error creating/updating form:', error);
       const alert = await this.alertController.create({
         header: 'Error',
-        message: 'Failed to create form. Please try again.',
+        message: 'Failed to create/update form. Please try again.',
         buttons: ['OK']
       });
       await alert.present();

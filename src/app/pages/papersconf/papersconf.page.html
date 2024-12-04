@@ -1,0 +1,140 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Conference Registration</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()" class="ion-padding">
+    <!-- User Basic Information -->
+    <ion-list>
+      <ion-item>
+        <ion-label position="floating">Email</ion-label>
+        <ion-input formControlName="email" type="email" required></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">First Name</ion-label>
+        <ion-input formControlName="firstName" required></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Last Name</ion-label>
+        <ion-input formControlName="lastName" required></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Organization</ion-label>
+        <ion-input formControlName="organization" required></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Phone Number</ion-label>
+        <ion-input formControlName="phoneNumber" type="tel"></ion-input>
+      </ion-item>
+
+      <!-- Role Selection -->
+      <ion-item>
+        <ion-label>Role</ion-label>
+        <ion-select formControlName="role" (ionChange)="roleChanged($event)">
+          <ion-select-option *ngFor="let role of userRoles" [value]="role">
+            {{ role | titlecase }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+
+    <!-- Conditional Fields Based on Role -->
+    <ng-container *ngIf="registrationForm.get('role')?.value === 'author'">
+      <div formGroupName="authorDetails">
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">Author Bio</ion-label>
+            <ion-textarea formControlName="bio"></ion-textarea>
+          </ion-item>
+          <ion-item>
+            <ion-label>Presenting</ion-label>
+            <ion-checkbox formControlName="isPresenting"></ion-checkbox>
+          </ion-item>
+        </ion-list>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="registrationForm.get('role')?.value === 'speaker'">
+      <div formGroupName="speakerDetails">
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">Speaker Bio</ion-label>
+            <ion-textarea formControlName="bio"></ion-textarea>
+          </ion-item>
+          <ion-item>
+            <ion-label position="floating">Expertise (comma-separated)</ion-label>
+            <ion-input formControlName="expertise"></ion-input>
+          </ion-item>
+          <div formGroupName="socialLinks">
+            <ion-item>
+              <ion-label position="floating">LinkedIn</ion-label>
+              <ion-input formControlName="linkedin"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="floating">Twitter</ion-label>
+              <ion-input formControlName="twitter"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="floating">Website</ion-label>
+              <ion-input formControlName="website"></ion-input>
+            </ion-item>
+          </div>
+        </ion-list>
+      </div>
+    </ng-container>
+
+    <!-- Paper Submission -->
+    <ng-container *ngIf="registrationForm.get('role')?.value === 'author'">
+      <div formGroupName="paperDetails">
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">Paper Title</ion-label>
+            <ion-input formControlName="title"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="floating">Abstract</ion-label>
+            <ion-textarea formControlName="abstract"></ion-textarea>
+          </ion-item>
+          <ion-item>
+            <ion-label position="floating">Keywords (comma-separated)</ion-label>
+            <ion-input formControlName="keywords"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Submission Type</ion-label>
+            <ion-select formControlName="submissionType">
+              <ion-select-option *ngFor="let type of submissionTypes" [value]="type">
+                {{ type | titlecase }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label>Presentation Type</ion-label>
+            <ion-select formControlName="presentationType">
+              <ion-select-option *ngFor="let type of presentationTypes" [value]="type">
+                {{ type | titlecase }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label>Upload Paper</ion-label>
+            <ion-input 
+              type="file" 
+              (ionChange)="onFileSelected($event)"
+              accept=".pdf,.doc,.docx"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
+      </div>
+    </ng-container>
+
+    <ion-button expand="block" type="submit" [disabled]="registrationForm.invalid">
+      Submit Registration
+    </ion-button>
+  </form>
+</ion-content>
